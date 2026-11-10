@@ -51,17 +51,20 @@ def halfplane(a, b, c, Lg=1e6):
 # ================================================================= 지붕 (박공 4동의 상부 포락면)
 OVE, OVG = 300, 250
 PLN = []
-def vol(name, fp, axis):
+EAVE_G, TAN_G = EAVE + 250, 0.839        # 차고(다락) 지붕: 다락 바닥에서 바로 올라가는 10/12 물매
+VOLP = {}
+def vol(name, fp, axis, eave=EAVE, tan=TAN):
     x0, y0, x1, y1 = fp.bounds
+    VOLP[name] = (axis, x0, y0, x1, y1, eave, tan)
     if axis == 'u':
         yr = (y0 + y1) / 2
-        PLN.append((box(x0 - OVG, yr, x1 + OVG, y1 + OVE), [0.0, -TAN, EAVE + TAN * y1], name))
-        PLN.append((box(x0 - OVG, y0 - OVE, x1 + OVG, yr), [0.0, TAN, EAVE - TAN * y0], name))
+        PLN.append((box(x0 - OVG, yr, x1 + OVG, y1 + OVE), [0.0, -tan, eave + tan * y1], name))
+        PLN.append((box(x0 - OVG, y0 - OVE, x1 + OVG, yr), [0.0, tan, eave - tan * y0], name))
     else:
         xr = (x0 + x1) / 2
-        PLN.append((box(x0 - OVE, y0 - OVG, xr, y1 + OVG), [TAN, 0.0, EAVE - TAN * x0], name))
-        PLN.append((box(xr, y0 - OVG, x1 + OVE, y1 + OVG), [-TAN, 0.0, EAVE + TAN * x1], name))
-vol('bar', BAR, 'u'); vol('hall', HALL, 'd'); vol('mast', MAST, 'd'); vol('gar', GAR, 'u')
+        PLN.append((box(x0 - OVE, y0 - OVG, xr, y1 + OVG), [tan, 0.0, eave - tan * x0], name))
+        PLN.append((box(xr, y0 - OVG, x1 + OVE, y1 + OVG), [-tan, 0.0, eave + tan * x1], name))
+vol('bar', BAR, 'u'); vol('hall', HALL, 'd'); vol('mast', MAST, 'd'); vol('gar', GAR, 'u', EAVE_G, TAN_G)
 REG = []
 for i, (fp, pl, nm) in enumerate(PLN):
     vis = fp
@@ -89,10 +92,49 @@ ROOFSPEC = []
 for k, (poly, pl, nm) in enumerate(REG):
     add(f'Roof_{nm}_{k + 1}', 'Roof', 'aluzinc', poly, pl, sh(pl, RT))
     ROOFSPEC.append({'p': [[round(x), round(y)] for x, y in list(poly.exterior.coords)[:-1]], 'pl': [round(v, 5) for v in pl], 'g': 'Roof', 'th': RT, 'sp': 450})
+DSP = []
+for k, (poly, pl, nm) in enumerate(REG):
+    axis, x0, y0, x1, y1, ev, tn = VOLP[nm]
+    cs = list(poly.exterior.coords)
+    for i in range(len(cs) - 1):
+        (ax, ay), (bx, by) = cs[i], cs[i + 1]
+        Lg = math.dist((ax, ay), (bx, by))
+        if Lg < 400: continue
+        ex, ey = (bx - ax) / Lg, (by - ay) / Lg
+        ox, oy = ey, -ex                                     # CCW 다각형의 바깥쪽
+        def strip(a0, a1, s0=0.0, s1=None):
+            s1 = Lg if s1 is None else s1
+            return Polygon([(ax + ex * s0 + ox * a0, ay + ey * s0 + oy * a0), (ax + ex * s1 + ox * a0, ay + ey * s1 + oy * a0),
+                            (ax + ex * s1 + ox * a1, ay + ey * s1 + oy * a1), (ax + ex * s0 + ox * a1, ay + ey * s0 + oy * a1)])
+        if axis == 'u':
+            is_eave = abs(ay - by) < 1 and (abs(ay - (y1 + OVE)) < 2 or abs(ay - (y0 - OVE)) < 2)
+            is_ridge = abs(ay - by) < 1 and abs(ay - (y0 + y1) / 2) < 2
+        else:
+            is_eave = abs(ax - bx) < 1 and (abs(ax - (x0 - OVE)) < 2 or abs(ax - (x1 + OVE)) < 2)
+            is_ridge = abs(ax - bx) < 1 and abs(ax - (x0 + x1) / 2) < 2
+        if is_eave:
+            zg = zat(pl, ax, ay)
+            add('Gutter', 'Roof', 'gutter', strip(0, 125), zg - 15, zg + 95)
+            north = axis == 'u' and oy > 0.5
+            if north and Lg > 2500:
+                for s in ([450, Lg - 450] if Lg > 6000 else [Lg / 2]):
+                    px, py = ax + ex * s, ay + ey * s
+                    add('Downspout_Arm', 'Roof', 'gutter', Polygon([(px - 40, py - OVE + 20), (px + 40, py - OVE + 20), (px + 40, py + 60), (px - 40, py + 60)]), zg - 100, zg - 20)
+                    add('Downspout', 'Roof', 'gutter', Polygon([(px - 40, py - OVE + 20), (px + 40, py - OVE + 20), (px + 40, py - OVE + 100), (px - 40, py - OVE + 100)]), PAD + 60, zg - 20)
+        if is_ridge:
+            add('RidgeCap', 'Roof', 'gutter', strip(-130, 0).intersection(poly), sh(pl, RT), sh(pl, RT + 48), minarea=300)
+    over = poly.difference(OUTLINE.buffer(-5))
+    add(f'Soffit_{k}', 'Roof', 'soffit', over, sh(pl, -20), pl)
+VAULT_IN = unary_union([B(7560, 5850, 20740, 12350), B(7560, 12350, 15240, 14350), B(-6750, 5850, -125, 12950)])
+for k, (poly, pl, nm) in enumerate(REG):
+    add(f'CeilWood_{k}', 'Roof', 'ceil_wood', poly.intersection(VAULT_IN), sh(pl, -20), pl)
 # 포치 덧지붕
 for poly, dw, nm in PORCH:
     pl = porch_plane(dw)
     add(f'Porch_Roof_{nm}', 'Roof', 'aluzinc', poly, pl, sh(pl, 120))
+    add(f'Porch_Soffit_{nm}', 'Roof', 'soffit', poly, sh(pl, -20), pl)
+    xa, ya, xb, yb = poly.bounds
+    add(f'Porch_Gutter_{nm}', 'Roof', 'gutter', box(xa, ya - 120, xb, ya), zat(pl, 0, ya) - 15, zat(pl, 0, ya) + 95)
     for part in nohole_parts(poly):
         ROOFSPEC.append({'p': [[round(x), round(y)] for x, y in list(orient(part, 1.0).exterior.coords)[:-1]], 'pl': [round(v, 5) for v in pl], 'g': 'Roof', 'th': 120, 'sp': 450})
 # 포치 기둥·도리
@@ -198,7 +240,10 @@ for i in range(n):
                 FRAMES.append([a[0] + ex * s0, a[1] + ey * s0, a[0] + ex * s1, a[1] + ey * s1, nx, ny, FL, FL + head, 0, 0])
             elif kind == 'gdoor':
                 add(nm + '_GarageDoor', '1F', 'gdoor', band(i, s0, s1, 60, 120), FL - 20, FL + head)
-                for h in range(1, 5):
+                for q in range(4):
+                    c0 = s0 + 250 + q * (s1 - s0 - 500) / 4 + 60
+                    add(nm + '_GDoorLite', '1F', 'glass', band(i, c0, c0 + (s1 - s0 - 500) / 4 - 120, 40, 58), FL + 1760, FL + 2120, minarea=300)
+                for h in range(1, 4):
                     add(nm + '_GDoorTrim', '1F', 'frame', band(i, s0, s1, 50, 62), FL - 20 + h * 450, FL - 20 + h * 450 + 18, minarea=300)
         s = s1
     wk[0] += 1
@@ -233,6 +278,59 @@ for d in (7300, 9500, 11700, 13700):
 # 굴뚝 (거실 벽난로)
 add('Chimney', '1F', 'stone_wall', B(17650, 5100, 18550, 5600), PAD, 7780)
 add('Chimney_Cap', '1F', 'frame', B(17580, 5030, 18620, 5670), 7780, 7850)
+
+# ================================================================= 차고 위 다락 (개인 공간)
+AT_FL = EAVE + 250
+for sub, top in tops(B(-250, 5600, 0, 13200)):                       # 본채 지붕 위로 드러나는 차고 동측 박공벽
+    add('Attic_Gable_E', 'Roof', 'siding_wood', sub.intersection(halfplane(top[0], top[1], top[2] - EAVE - 25)), EAVE, top)
+WELL = B(-1125, 8700, -125, 12700)
+add('Attic_Slab', '1F', 'concrete', B(-6750, 5850, -125, 12950).difference(WELL), EAVE, AT_FL)
+add('Attic_Floor', '1F', 'fl_private', B(-6750, 5850, -125, 12950).difference(WELL), AT_FL, AT_FL + 15)
+for k in range(16):
+    d1 = 12700 - 250 * k
+    add(f'Attic_Stair_{k + 1}', '1F', 'timber', B(-1125, d1 - 250, -175, d1), FL - 20, FL - 20 + (AT_FL - FL + 20) / 17 * (k + 1))
+add('Attic_Rail_W', '1F', 'frame', B(-1165, 8700, -1125, 12700), AT_FL, AT_FL + 1000)
+add('Attic_Rail_S', '1F', 'frame', B(-1165, 12700, -125, 12740), AT_FL, AT_FL + 1000)
+GPN = [0.0, -TAN_G, EAVE_G + TAN_G * (-5600)]; GPS = [0.0, TAN_G, EAVE_G + TAN_G * 13200]
+add('Attic_Window_Glass', 'Roof', 'glass', B(-7030, 8200, -7005, 10600), AT_FL + 600, AT_FL + 2050)
+for (d0, d1, z0, z1) in [(8200, 10600, 540, 600), (8200, 10600, 2050, 2110), (8200, 8260, 600, 2050), (10540, 10600, 600, 2050), (9375, 9425, 600, 2050), (8200, 10600, 1500, 1540)]:
+    add('Attic_Window_Frame', 'Roof', 'frame', B(-7050, d0, -7000, d1), AT_FL + z0, AT_FL + z1, minarea=300)
+for k, u0 in enumerate((-5600, -3200)):                                # 남측 지붕 천창 2개
+    add(f'Skylight_{k + 1}_Frame', 'Roof', 'frame', B(u0, 10700, u0 + 900, 12100), sh(GPS, RT), sh(GPS, RT + 70))
+    add(f'Skylight_{k + 1}_Glass', 'Roof', 'glass', B(u0 + 70, 10770, u0 + 830, 12030), sh(GPS, RT + 70), sh(GPS, RT + 90))
+AF = AT_FL + 15
+add('Attic_Desk', 'Furniture', 'timber', B(-6700, 8600, -6000, 10200), AF + 700, AF + 740)
+add('Attic_Sofa', 'Furniture', 'sofa', B(-4600, 8000, -2400, 8900), AF, AF + 420)
+add('Attic_Sofa_Back', 'Furniture', 'sofa', B(-4600, 8000, -2400, 8200), AF + 420, AF + 800)
+add('Attic_Shelf_N', 'Furniture', 'cabinet_wood', B(-6600, 6300, -1500, 6700), AF, AF + 700)
+add('Attic_Shelf_S', 'Furniture', 'cabinet_wood', B(-6600, 12300, -1500, 12700), AF, AF + 700)
+add('Attic_Rug', 'Furniture', 'bed', B(-5200, 9100, -2200, 10900), AF, AF + 12)
+# 외부 벽등
+for (u, d, ox, oy) in [(-7000, 9400, -1, 0), (-7000, 5900, -1, 0), (-7000, 12900, -1, 0), (1150, 12600, 0, -1), (3450, 12600, 0, -1), (-1000 + 700, 13200, 0, -1),
+                       (7900, 14600, 0, -1), (14900, 14600, 0, -1), (15650, 12600, 0, -1), (20650, 12600, 0, -1), (3850, 5600, 0, 1)]:
+    x, y = u + ox * 45, -d + oy * 45
+    add('WallLamp', '1F', 'lamp', box(x - 60, y - 60, x + 60, y + 60) if True else None, FL + 2000, FL + 2220, minarea=300)
+
+# 다락 서측 박공벽에 창 개구부 내기
+_newP = []
+WIN = B(-7100, 8200, -6700, 10600)
+for p in P:
+    xs_ = [q[0] for q in p['p']]
+    if p['g'] == 'Roof' and p['m'] == 'siding_wood' and min(xs_) >= -7001 and max(xs_) <= -6749:
+        poly = Polygon(p['p'])
+        keep, cut = poly.difference(WIN), poly.intersection(WIN)
+        n0 = len(P)
+        if not keep.is_empty: _newP.append(('k', p, keep))
+        if not cut.is_empty: _newP.append(('c', p, cut))
+    else:
+        _newP.append(('o', p, None))
+P[:] = []
+for kind, p, geom in _newP:
+    if kind == 'o': P.append(p)
+    elif kind == 'k': add(p['n'], p['g'], p['m'], geom, p['zb'], p['zt'])
+    else:
+        add(p['n'] + '_UnderWin', p['g'], p['m'], geom, p['zb'], AT_FL + 600)
+        add(p['n'] + '_OverWin', p['g'], p['m'], geom, AT_FL + 2050, p['zt'])
 
 # ================================================================= 대지
 add('Hillside', 'Site', 'hill', HILL, -14000, NAT)
@@ -347,7 +445,7 @@ for k in range(4):
 
 FENCE = [{'p': [(-17350, -8200), (-17350, -16650), (2450, -16650), (4680, -15740), (7000, -17140), (14450, -20050), (34350, -20050), (34350, -11400)], 'z': PAD + 120}]
 SPEC = {'roofs': ROOFSPEC, 'frames': [[round(v, 1) for v in f] for f in FRAMES], 'fences': FENCE, 'chairs': CH}
-LABELS = [{'t': k, 'x': round(room_poly(k).centroid.x), 'y': round(room_poly(k).centroid.y), 'z': FL + 100} for k in ROOMS]
+LABELS = [{'t': '다락 (개인 공간)', 'x': -3600, 'y': -9400, 'z': AT_FL + 100, 'attic': 1}] + [{'t': k, 'x': round(room_poly(k).centroid.x), 'y': round(room_poly(k).centroid.y), 'z': FL + 100} for k in ROOMS]
 
 if __name__ == '__main__':
     core = len(P)

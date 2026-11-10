@@ -66,11 +66,14 @@ def plan():
     cuts = unary_union([G.band(i, s0, s1, -400, 400) for i, ops in G.EDGE_OPS.items() for (s0, s1, *_r) in ops])
     walls = unary_union([OUTLINE.difference(INNER).difference(cuts), G.allw.difference(G.dc)])
     for p in G.P:
-        if p['g'] == 'Furniture' and not p['n'].endswith('_Top') and 'Leg' not in p['n']: s.append(sp(Polygon(p['p']), fill='none', stroke='#8b8b8b', stroke_width=18))
+        if p['g'] == 'Furniture' and not p['n'].endswith('_Top') and 'Leg' not in p['n'] and not p['n'].startswith('Attic'): s.append(sp(Polygon(p['p']), fill='none', stroke='#8b8b8b', stroke_width=18))
         if 'Car' in p['n'] and 'Body' in p['n']: s.append(sp(Polygon(p['p']).buffer(-60).buffer(60), fill='#cfd3d6' if 'Guest' in p['n'] else '#bfc4c8', stroke='#777', stroke_width=18))
         if p['n'] == 'Outdoor_Table': s.append(sp(Polygon(p['p']), fill='#e8d3ae', stroke='#8b8b8b', stroke_width=18))
         if p['n'] == 'Dining_Table': s.append(sp(Polygon(p['p']), fill='#e8d3ae', stroke='#6b5a3a', stroke_width=25))
     for c in G.CH: s.append(f'<rect x="{c[0] - 210:.0f}" y="{-c[1] - 210:.0f}" width="420" height="420" rx="90" fill="#fff" stroke="#8b6b45" stroke-width="18"/>')
+    s.append(sp(B(-1125, 8700, -125, 12700), fill='#f3eee3', stroke='#777', stroke_width=14))
+    for k in range(16): s.append(pl([(-1125, -(12700 - 250 * k)), (-125, -(12700 - 250 * k))], stroke='#999', stroke_width=8))
+    s.append(tx(-625, -8450, '다락 계단', 170, fill='#555'))
     s.append(sp(walls, fill='#1f1f1f'))
     s.append(sp(B(17650, 5100, 18550, 5600), fill='#7d7466'))
     for i, ops in G.EDGE_OPS.items():
@@ -82,7 +85,7 @@ def plan():
         s.append(f'<circle cx="{u}" cy="{d}" r="750" fill="none" stroke="#2e9e6a" stroke-width="16" stroke-dasharray="70,70"/>')
     for k, v in ROOMS.items():
         p = room_poly(k); c = p.centroid; a = p.area / 1e6; small = a < 8
-        dy = {'주방': 1300, '다이닝 (14인)': -1500, '거실': -1700, '침실2 (게스트·서재)': 900, '안방': -1400, '차고 (2대)': 0}.get(k, 0)
+        dy = {'주방': 1300, '다이닝 (14인)': -1500, '거실': -1700, '침실2 (게스트·서재)': 900, '안방': -1400, '차고 (2대)': 600}.get(k, 0)
         s.append(tx(c.x, c.y + dy + 60, k, 250 if small else 330, weight=700))
         s.append(tx(c.x, c.y + dy - (300 if small else 380), f'{a:.1f}㎡ · {a / 3.3058:.1f}평', 200 if small else 240, fill='#555'))
     s.append(tx(-12300, -9000, '진입 마당', 380, fill='#666', weight=700)); s.append(tx(-12300, -9550, '도로와 같은 높이 · 손님 주차 2~4대', 230, fill='#777'))
@@ -100,8 +103,26 @@ def plan():
     ox, oy = 37500, 5200
     s.append(f'<circle cx="{ox}" cy="{-oy}" r="900" fill="#fff" stroke="#333" stroke-width="30"/>')
     s.append(pl([(ox - nx_ * 800, oy - ny_ * 800), (ox + nx_ * 1300, oy + ny_ * 1300)], stroke='#222', stroke_width=50)); s.append(tx(ox + nx_ * 1750, oy + ny_ * 1650, 'N', 420, weight=700))
-    s.append(tx(X0 + 700, Y1 - 1100, 'C안 · 1층 평면도 (완전 단층 · 엘리베이터 없음)', 620, 'start', '#111', 700))
+    s.append(tx(X0 + 700, Y1 - 1100, 'C안 · 1층 평면도 + 차고 위 다락 (엘리베이터 없음)', 620, 'start', '#111', 700))
     s.append(tx(X0 + 700, Y1 - 1800, f'난방면적 {HEATED.area / 1e6:.0f}㎡({HEATED.area / 1e6 / 3.3058:.0f}평) + 차고 {GAR.area / 1e6:.0f}㎡({GAR.area / 1e6 / 3.3058:.0f}평) · 초록 점선 원 = 휠체어 회전 지름 1.5m · 대지·석축·도로 좌표는 기존 도면에서 추정', 260, 'start', '#555'))
+    # ---- 다락 평면 인셋 (차고 위)
+    ox, oy = -23300, -24000            # 인셋 원점 (좌하단)
+    def R(u0, d0, u1, d1, **kw):       # 차고 좌표(u -7000..0, d 5600..13200) -> 인셋
+        return sp(box(ox + (u0 + 7000), oy + (13200 - max(d0, d1)), ox + (u1 + 7000), oy + (13200 - min(d0, d1))), **kw)
+    s.append(sp(box(ox - 500, oy - 500, ox + 7500, oy + 9300), fill='#ffffff', stroke='#999', stroke_width=20))
+    s.append(R(-7000, 5600, 0, 13200, fill='#1f1f1f'))
+    s.append(R(-6750, 5850, -125, 12950, fill='#d8e5f1'))
+    s.append(R(-6750, 7980, -125, 10820, fill='#c4d9ec', stroke='#2e6fa8', stroke_width=14, stroke_dasharray='90,70'))
+    s.append(R(-1125, 8700, -125, 12700, fill='#f3eee3', stroke='#777', stroke_width=14))
+    for k in range(16): s.append(R(-1125, 12700 - 250 * k - 250, -125, 12700 - 250 * k, fill='none', stroke='#999', stroke_width=8))
+    s.append(R(-7000, 8200, -6750, 10600, fill='#2f8fd8'))
+    for u0 in (-5600, -3200): s.append(R(u0, 10700, u0 + 900, 12100, fill='#bfe0f5', stroke='#2f8fd8', stroke_width=20))
+    for (a, b_, c, d_) in [(-6700, 8600, -6000, 10200), (-4600, 8000, -2400, 8900), (-6600, 6300, -1500, 6700), (-6600, 12300, -1500, 12700)]:
+        s.append(R(a, b_, c, d_, fill='none', stroke='#8b8b8b', stroke_width=14))
+    s.append(tx(ox + 3500, oy + 8650, '다락 평면 (차고 위, 개인 공간)', 300, weight=700))
+    s.append(tx(ox + 2900, oy + 4000, '서서 쓰는 구간', 210, fill='#2e6fa8')); s.append(tx(ox + 2900, oy + 3650, '(천장 2.0m 이상, 폭 2.8m)', 180, fill='#2e6fa8'))
+    s.append(tx(ox + 6400, oy + 2500, '계단', 190, fill='#555')); s.append(tx(ox + 1850, oy + 1800, '천창', 170, fill='#2f6fa0')); s.append(tx(ox + 4250, oy + 1800, '천창', 170, fill='#2f6fa0'))
+    s.append(tx(ox + 3500, oy - 250, '바닥 43㎡ · 천장 평균 약 1.6m (다락 기준 1.8m 이하)', 190, fill='#555'))
     s.append('</svg>')
     return '\n'.join(s)
 
