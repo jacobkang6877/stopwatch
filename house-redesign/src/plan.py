@@ -112,14 +112,22 @@ def furniture_1f():
     st = dict(fill='none', stroke='#8a8a8a', stroke_width=20)
     f.append(svg_poly(box(3000, 1500, 5600, 2400), **st))           # 소파
     f.append(svg_poly(box(3300, 3000, 5300, 3500), **st))           # TV장
-    isl = Polygon([W(4300, 4300), W(6900, 4300), W(6900, 5200), W(4300, 5200)])
+    isl = Polygon([W(4300, 4900), W(6900, 4900), W(6900, 5800), W(4300, 5800)])
     f.append(svg_poly(isl, **st))                                    # 아일랜드
     cnt = Polygon([W(3400, 2900), W(8300, 2900), W(8300, 3550), W(3400, 3550)])
     f.append(svg_poly(cnt, **st))                                    # 주방 카운터
     tab = Polygon([W(300, 4800), W(2400, 4800), W(2400, 5900), W(300, 5900)])
+    f.append(svg_poly(Polygon([W(7300, 6200), W(8500, 6200), W(8500, 7200), W(7300, 7200)]), **st))
     f.append(svg_poly(tab, **st))                                    # 식탁
     f.append(svg_poly(box(23400, 9900, 25500, 12000), **st))         # 안방 침대
     f.append(svg_poly(box(19000, 9900, 20500, 11900), **st))         # 침실2 침대
+    f.append(svg_poly(box(27000, 9750, 28700, 10550), **st))         # 욕조
+    f.append(svg_poly(box(28800, 9700, 30000, 11300), fill='none', stroke='#3a8fd6', stroke_width=20, stroke_dasharray='120,80'))  # 무턱 샤워
+    f.append(svg_poly(box(26700, 13300, 29900, 13848), **st))        # 세면대 2
+    f.append(svg_poly(box(30300, 13300, 32250, 13848), **st))        # 드레스 수납
+    f.append(svg_poly(box(30300, 9648, 32250, 10200), **st))
+    for c in [(1100, 4150), (24300, 13000), (28400, 12300), (10900, 9700), (7000, 8000)]:
+        f.append(svg_poly(Point(c).buffer(750), fill='none', stroke='#2e9e6a', stroke_width=18, stroke_dasharray='60,60'))  # 휠체어 회전원 1.5m
     return '\n'.join(f)
 
 def render(level):
@@ -132,23 +140,18 @@ def render(level):
     elif level == 'B1':
         rooms = rooms_b1
         ext = B1_BOX.difference(B1_BOX.buffer(-EXT, join_style=2)).difference(box(250, -100, 7299, 260))
-        intw = unary_union([LineString([(250, 5350), (1950, 5350)]).buffer(60, cap_style=2),
-                            LineString([(1950, 5350), (1950, 7050)]).buffer(60, cap_style=2),
+        intw = unary_union([LineString([(250, 5250), (1980, 5250)]).buffer(60, cap_style=2),
+                            LineString([(1980, 5250), (1980, 7050)]).buffer(60, cap_style=2),
                             LineString([(2700, 5925), (7299, 5925)]).buffer(60, cap_style=2)])
-        intw = intw.difference(door_cut((1100, 5350), 900))
+        intw = intw.difference(door_cut((1100, 5250), 1000))
         walls = unary_union([ext, intw])
         glass = []
         title = '지하 1층 (주차) 평면도'
     else:
-        rooms = rooms_at
-        ext = LEFT.difference(LEFT.buffer(-EXT, join_style=2))
-        ext = ext.difference(unary_union([box(7200, 1400, 7700, 3400), box(1800, -100, 6500, 400), box(-100, 1500, 400, 2700)]))
-        intw = LineString([(2040, 5925), (7299, 5925)]).buffer(60, cap_style=2)
-        walls = unary_union([ext, intw])
-        glass = [LineString([(7549 - 125, 1400), (7549 - 125, 3400)]), LineString([(1800, 125), (6500, 125)]),
-                 LineString([(125, 1500), (125, 2700)])]
-        title = '다락 평면도'
-
+        rooms = {}
+        walls = Polygon()
+        glass = []
+        title = '지붕 평면도 (박공지붕)'
     s = ['<svg xmlns="http://www.w3.org/2000/svg" viewBox="-13500 -27000 61000 38500" width="2440" height="1540" font-family="WenQuanYi Zen Hei, sans-serif">',
          '<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker></defs>',
          '<rect x="-13500" y="-27000" width="61000" height="38500" fill="#ffffff"/>',
@@ -159,28 +162,39 @@ def render(level):
         s.append(svg_poly(DECK, fill='#efe6d6', stroke='#a08c6a', stroke_width=30))
         s.append(label(DECK, '남측 테라스', area=False, size=340))
     if level == 'AT':
-        band_roof = OUTLINE.difference(LEFT).difference(WING)
-        s.append(svg_poly(band_roof, fill='#e9efe3', stroke='#9aaa8a', stroke_width=30))
-        deck_r = band_roof.intersection(Polygon([W(-3000, 2900), W(6000, 2900), W(6000, 8000), W(-3000, 8000)]))
-        s.append(svg_poly(deck_r, fill='#efe6d6', stroke='#a08c6a', stroke_width=30))
-        s.append(label(deck_r, '옥상 데크', area=False, size=340))
-        s.append(label(band_roof.difference(deck_r).buffer(-1500), '옥상 녹화', area=False, size=300, dx=1500, dy=1200))
-        s.append(svg_poly(WING, fill='#dcdcdc', stroke='#999', stroke_width=30))
-        s.append(f'<text x="{(XJ + 32550) / 2:.0f}" y="{-11900:.0f}" font-size="340" text-anchor="middle" fill="#555">우측 날개 지붕 (외쪽지붕, 남측으로 높아짐)</text>')
+        RX = 7549 / 2; RWY = (9348 + 14148) / 2
+        lb = box(-500, -500, 8049, 7800)
+        bfp = OUTLINE.difference(LEFT).difference(WING).buffer(600, join_style=2).difference(LEFT).difference(box(XJ, -1e6, 1e6, 1e6))
+        bfp = bfp.intersection(band_poly(-3000, 20000, -600, 8600))
+        ws = unary_union([box(XJ, 8748, 32950, RWY), box(XJ - 2500, 9348, XJ, RWY)])
+        wn = unary_union([box(XJ, RWY, 32950, 15248), box(XJ - 2500, RWY, XJ, 14148)])
+        for fp, col in [(ws, '#6c7076'), (wn, '#5d6166'), (bfp.intersection(band_poly(-1e5, 1e5, -1e5, 4000)), '#5d6166'),
+                        (bfp.intersection(band_poly(-1e5, 1e5, 4000, 1e5)), '#6c7076'),
+                        (lb.intersection(box(-1e6, -1e6, RX, 1e6)), '#5d6166'), (lb.intersection(box(RX, -1e6, 1e6, 1e6)), '#6c7076')]:
+            s.append(svg_poly(fp, fill=col, stroke='#2b2b2b', stroke_width=30))
+        ridges = [LineString([(RX, -500), (RX, 7800)]), LineString([(XJ - 2500, RWY), (32950, RWY)]),
+                  LineString([W(-3000, 4000), W(20000, 4000)]).intersection(bfp)]
+        for r in ridges:
+            for seg in getattr(r, 'geoms', [r]):
+                s.append(f'<polyline points="{" ".join(f"{x:.0f},{-y:.0f}" for x, y in seg.coords)}" fill="none" stroke="#f2c14e" stroke-width="80"/>')
+        s.append('<text x="3775" y="-3300" font-size="300" text-anchor="middle" fill="#fff">거실동 30°</text>')
+        s.append(f'<text x="25000" y="{-RWY - 700:.0f}" font-size="300" text-anchor="middle" fill="#fff">날개 6/12 (26.6°)</text>')
+        c = W(7000, 2000)
+        s.append(f'<text x="{c[0]:.0f}" y="{-c[1]:.0f}" font-size="300" text-anchor="middle" fill="#fff">사선부 6/12</text>')
+        s.append('<text x="-12500" y="-22900" font-size="300" fill="#555">노란 선 = 용마루 · 짙은 회색 강판(또는 기와) · 처마 600 (북측 툇마루 쪽 1,100)</text>')
     for name, p in rooms.items():
         z = ZONE.get(name, 'circ')
         s.append(svg_poly(p, fill=FILL[z], stroke='none'))
     if level == '1F':
         s.append(furniture_1f())
         s.append(stairs_svg(2100, 6260, 5975, 7000, 16, 'DN (지하)', -1))
-        s.append(stairs_svg(2040, 6200, 4850, 5875, 16, 'UP (다락)', -1))
+        s.append(svg_poly(box(2100, 5265, 6260, 5865), fill='none', stroke='#8a8a8a', stroke_width=20))
+        s.append('<text x="4180" y="-5480" font-size="240" text-anchor="middle" fill="#666">붙박이 수납장</text>')
     if level == 'B1':
-        for x0 in (1125, 3925):
-            s.append(svg_poly(box(x0, 250, x0 + 2500, 5250), fill='none', stroke='#888', stroke_width=25, stroke_dasharray='200,120'))
+        for x0, w0 in ((300, 3300), (4300, 2500)):
+            s.append(svg_poly(box(x0, 250, x0 + w0, 5250), fill='none', stroke='#888', stroke_width=25, stroke_dasharray='200,120'))
         s.append(stairs_svg(2100, 6260, 5975, 7000, 16, 'UP (1층)', 1))
-        s.append('<text x="3775" y="-900" font-size="300" text-anchor="middle" fill="#555">주차 2대 (2.5×5.0m)</text>')
-    if level == 'AT':
-        s.append(stairs_svg(2040, 6200, 4850, 5875, 16, 'UP', 1))
+        s.append('<text x="3775" y="-900" font-size="300" text-anchor="middle" fill="#555">장애인 주차 3.3m + 일반 2.5m (EV 충전·자율주행 차량 대응)</text>')
     s.append(svg_poly(walls, fill='#222', stroke='none'))
     for g in glass:
         if not g.is_empty:
@@ -188,12 +202,13 @@ def render(level):
     for name, p in rooms.items():
         if name in ('EV',):
             s.append(label(p, 'EV', area=False, size=300))
-        elif name == '계단실':
+        elif name in ('계단실', '계단·홀'):
             continue
         elif p.area > 2.5e6:
             s.append(label(p, name, size=330 if p.area < 9e6 else 380))
     # 치수
-    s.append(dim((0, 0), (7549, 0), -1500))
+    if level != 'AT':
+        s.append(dim((0, 0), (7549, 0), -1500))
     if level == '1F':
         s.append(dim((0, 0), (32550, 0), -2600, '32,550'))
         s.append(dim(SE_END, (32550, 9348), -1300))
@@ -201,8 +216,10 @@ def render(level):
         s.append(dim((0, 7300), (0, 0), -1200))
         s.append(dim((7549, 0), SE_END, -1200))
         s.append(f'<text x="-12500" y="-24800" font-size="700" font-weight="700" fill="#111">{title}</text>')
-    else:
+    elif level == 'B1':
         s.append(dim((0, 7300), (0, 0), -1200))
+        s.append(f'<text x="-12500" y="-24800" font-size="700" font-weight="700" fill="#111">{title}</text>')
+    else:
         s.append(f'<text x="-12500" y="-24800" font-size="700" font-weight="700" fill="#111">{title}</text>')
     s.append('<text x="-12500" y="-23900" font-size="320" fill="#555">B안 재설계 · 1:150 상당 · 대지·옹벽 좌표는 기존 도면에서 추정</text>')
     s.append('</svg>')
