@@ -115,7 +115,8 @@ def plan():
     s.append(R(-6750, 7980, -125, 10820, fill='#c4d9ec', stroke='#2e6fa8', stroke_width=14, stroke_dasharray='90,70'))
     s.append(R(-1125, 8700, -125, 12700, fill='#f3eee3', stroke='#777', stroke_width=14))
     for k in range(16): s.append(R(-1125, 12700 - 250 * k - 250, -125, 12700 - 250 * k, fill='none', stroke='#999', stroke_width=8))
-    s.append(R(-7000, 8200, -6750, 10600, fill='#2f8fd8'))
+    s.append(R(-7000, 9150, -6750, 9650, fill='#c8642a'))
+    s.append(tx(ox + 1250, oy + 3730, '원형 창 Ø500', 170, fill='#a04a18'))
     for u0 in (-5600, -3200): s.append(R(u0, 10700, u0 + 900, 12100, fill='#bfe0f5', stroke='#2f8fd8', stroke_width=20))
     for (a, b_, c, d_) in [(-6700, 8600, -6000, 10200), (-4600, 8000, -2400, 8900), (-6600, 6300, -1500, 6700), (-6600, 12300, -1500, 12700)]:
         s.append(R(a, b_, c, d_, fill='none', stroke='#8b8b8b', stroke_width=14))

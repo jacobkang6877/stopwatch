@@ -292,9 +292,6 @@ for k in range(16):
 add('Attic_Rail_W', '1F', 'frame', B(-1165, 8700, -1125, 12700), AT_FL, AT_FL + 1000)
 add('Attic_Rail_S', '1F', 'frame', B(-1165, 12700, -125, 12740), AT_FL, AT_FL + 1000)
 GPN = [0.0, -TAN_G, EAVE_G + TAN_G * (-5600)]; GPS = [0.0, TAN_G, EAVE_G + TAN_G * 13200]
-add('Attic_Window_Glass', 'Roof', 'glass', B(-7030, 8200, -7005, 10600), AT_FL + 600, AT_FL + 2050)
-for (d0, d1, z0, z1) in [(8200, 10600, 540, 600), (8200, 10600, 2050, 2110), (8200, 8260, 600, 2050), (10540, 10600, 600, 2050), (9375, 9425, 600, 2050), (8200, 10600, 1500, 1540)]:
-    add('Attic_Window_Frame', 'Roof', 'frame', B(-7050, d0, -7000, d1), AT_FL + z0, AT_FL + z1, minarea=300)
 for k, u0 in enumerate((-5600, -3200)):                                # 남측 지붕 천창 2개
     add(f'Skylight_{k + 1}_Frame', 'Roof', 'frame', B(u0, 10700, u0 + 900, 12100), sh(GPS, RT), sh(GPS, RT + 70))
     add(f'Skylight_{k + 1}_Glass', 'Roof', 'glass', B(u0 + 70, 10770, u0 + 830, 12030), sh(GPS, RT + 70), sh(GPS, RT + 90))
@@ -311,26 +308,21 @@ for (u, d, ox, oy) in [(-7000, 9400, -1, 0), (-7000, 5900, -1, 0), (-7000, 12900
     x, y = u + ox * 45, -d + oy * 45
     add('WallLamp', '1F', 'lamp', box(x - 60, y - 60, x + 60, y + 60) if True else None, FL + 2000, FL + 2220, minarea=300)
 
-# 다락 서측 박공벽에 창 개구부 내기
-_newP = []
-WIN = B(-7100, 8200, -6700, 10600)
-for p in P:
+# 다락 서측 박공벽에 지름 500mm 원형 창 개구부 (세로 띠로 근사, 유리와 창틀은 렌더러에서 추가)
+RW_C, RW_Z, RW_R = 9400, AT_FL + 1500, 250
+_old = list(P); P[:] = []
+for p in _old:
     xs_ = [q[0] for q in p['p']]
-    if p['g'] == 'Roof' and p['m'] == 'siding_wood' and min(xs_) >= -7001 and max(xs_) <= -6749:
-        poly = Polygon(p['p'])
-        keep, cut = poly.difference(WIN), poly.intersection(WIN)
-        n0 = len(P)
-        if not keep.is_empty: _newP.append(('k', p, keep))
-        if not cut.is_empty: _newP.append(('c', p, cut))
-    else:
-        _newP.append(('o', p, None))
-P[:] = []
-for kind, p, geom in _newP:
-    if kind == 'o': P.append(p)
-    elif kind == 'k': add(p['n'], p['g'], p['m'], geom, p['zb'], p['zt'])
-    else:
-        add(p['n'] + '_UnderWin', p['g'], p['m'], geom, p['zb'], AT_FL + 600)
-        add(p['n'] + '_OverWin', p['g'], p['m'], geom, AT_FL + 2050, p['zt'])
+    if not (p['g'] == 'Roof' and p['m'] == 'siding_wood' and min(xs_) >= -7001 and max(xs_) <= -6749):
+        P.append(p); continue
+    poly = Polygon(p['p'])
+    add(p['n'], p['g'], p['m'], poly.difference(B(-7100, RW_C - RW_R, -6700, RW_C + RW_R)), p['zb'], p['zt'])
+    for k in range(10):
+        d0 = RW_C - RW_R + 50 * k
+        half = math.sqrt(max(RW_R ** 2 - (d0 + 25 - RW_C) ** 2, 0))
+        cut = poly.intersection(B(-7100, d0, -6700, d0 + 50))
+        add(p['n'] + f'_Under{k}', p['g'], p['m'], cut, p['zb'], RW_Z - half, minarea=300)
+        add(p['n'] + f'_Over{k}', p['g'], p['m'], cut, RW_Z + half, p['zt'], minarea=300)
 
 # ================================================================= 대지
 add('Hillside', 'Site', 'hill', HILL, -14000, NAT)

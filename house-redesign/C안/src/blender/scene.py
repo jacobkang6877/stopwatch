@@ -298,6 +298,41 @@ def car(x0, y0, mat):
             bpy.ops.mesh.primitive_cylinder_add(radius=0.34, depth=0.24, location=(x0 + dx, y0 + dy, 2.85 + 0.36), rotation=(math.pi / 2, 0, 0)); bpy.context.object.data.materials.append(MATS['frame'])
 car(-17.2, -12.3, 'car'); car(-17.2, -14.8, 'car2')
 
+# ------------------------------------------------------------------ 다락 원형 스테인드글라스 (지름 500mm)
+def stained_glass():
+    m, nt, b = new_mat('stained')
+    tc = N(nt, 'ShaderNodeTexCoord'); sp_ = N(nt, 'ShaderNodeSeparateXYZ'); nt.links.new(tc.outputs['Object'], sp_.inputs[0])
+    x, y = sp_.outputs[0], sp_.outputs[1]
+    r = math_(nt, 'SQRT', math_(nt, 'ADD', math_(nt, 'MULTIPLY', x, x), math_(nt, 'MULTIPLY', y, y)))
+    ang = math_(nt, 'ADD', math_(nt, 'DIVIDE', math_(nt, 'ARCTAN2', y, x), 2 * math.pi), 0.5)
+    rr = math_(nt, 'DIVIDE', r, 0.084); ring = math_(nt, 'FLOOR', rr)
+    nsec = math_(nt, 'MULTIPLY', ring, 6.0)                                   # 고리마다 0, 6, 12 조각
+    sv = math_(nt, 'ADD', math_(nt, 'MULTIPLY', ang, nsec), math_(nt, 'MULTIPLY', ring, 0.5))
+    sec = math_(nt, 'FLOOR', sv)
+    wn = N(nt, 'ShaderNodeTexWhiteNoise', noise_dimensions='1D'); nt.links.new(math_(nt, 'ADD', math_(nt, 'MULTIPLY', ring, 31.0), math_(nt, 'MULTIPLY', sec, 7.0)), wn.inputs['W'])
+    hsv = N(nt, 'ShaderNodeCombineColor', mode='HSV'); nt.links.new(wn.outputs['Value'], hsv.inputs[0]); hsv.inputs[1].default_value = 0.85; hsv.inputs[2].default_value = 0.9
+    col = mixc(nt, math_(nt, 'LESS_THAN', ring, 0.5), hsv.outputs[0], (1.0, 0.62, 0.12))    # 가운데는 호박색
+    fs = math_(nt, 'FRACT', sv)
+    lead_s = math_(nt, 'MULTIPLY', math_(nt, 'MAXIMUM', math_(nt, 'LESS_THAN', fs, 0.05), math_(nt, 'GREATER_THAN', fs, 0.95)), math_(nt, 'GREATER_THAN', ring, 0.5))
+    fr = math_(nt, 'FRACT', rr)
+    lead_r = math_(nt, 'MULTIPLY', math_(nt, 'MAXIMUM', math_(nt, 'LESS_THAN', fr, 0.07), math_(nt, 'GREATER_THAN', fr, 0.93)), math_(nt, 'GREATER_THAN', rr, 0.5))
+    lead = math_(nt, 'MAXIMUM', lead_s, lead_r)
+    tr = N(nt, 'ShaderNodeBsdfTransparent'); nt.links.new(col, tr.inputs[0])
+    em = N(nt, 'ShaderNodeEmission'); nt.links.new(col, em.inputs[0]); em.inputs[1].default_value = 0.9
+    ad = N(nt, 'ShaderNodeAddShader'); nt.links.new(tr.outputs[0], ad.inputs[0]); nt.links.new(em.outputs[0], ad.inputs[1])
+    df = N(nt, 'ShaderNodeBsdfDiffuse'); df.inputs[0].default_value = (0.02, 0.02, 0.02, 1)
+    mx = N(nt, 'ShaderNodeMixShader'); nt.links.new(lead, mx.inputs[0]); nt.links.new(ad.outputs[0], mx.inputs[1]); nt.links.new(df.outputs[0], mx.inputs[2])
+    nt.links.new(mx.outputs[0], nt.nodes['Material Output'].inputs['Surface'])
+    MATS['stained_em'] = em
+    return m
+SGM = stained_glass()
+bpy.ops.mesh.primitive_cylinder_add(radius=0.25, depth=0.016, vertices=72, location=(-6.9, -9.4, 5.95 + 1.5), rotation=(0, math.pi / 2, 0))
+bpy.context.object.data.materials.append(SGM); GROUP_OBJS.setdefault('Roof', []).append(bpy.context.object)
+for xr in (-7.005, -6.745):
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.265, minor_radius=0.03, major_segments=72, minor_segments=12, location=(xr, -9.4, 5.95 + 1.5), rotation=(0, math.pi / 2, 0))
+    o = bpy.context.object; o.data.materials.append(MATS['frame']); GROUP_OBJS['Roof'].append(o)
+    for p_ in o.data.polygons: p_.use_smooth = True
+
 # ------------------------------------------------------------------ 하늘·해·실내등
 w = bpy.data.worlds.new('W'); sc.world = w; w.use_nodes = True
 wnt = w.node_tree; bg = wnt.nodes['Background']; sky = wnt.nodes.new('ShaderNodeTexSky'); sky.sky_type = 'MULTIPLE_SCATTERING'
@@ -343,6 +378,7 @@ for v in json.load(open(VIEWS)):
         set_sun(v.get('az', 222), v.get('el', 40), 4.2, 0.30); lp, ls = 40.0, 3.0
     for L, pw in LIGHTS: L.data.energy = lp * pw
     MATS['lamp'].node_tree.nodes['Principled BSDF'].inputs['Emission Strength'].default_value = ls
+    MATS['stained_em'].inputs[1].default_value = 6.0 if mode == 'dusk' else (0.25 if mode == 'interior' else 0.9)
     sc.view_settings.exposure = v.get('exposure', 0.0)
     sc.cycles.samples = int(SAMPLES * v.get('sm', 1.0))
     sc.render.filepath = os.path.join(OUT, v['file'] + '.png')
