@@ -275,6 +275,7 @@ for d in (7300, 9500, 11700, 13700):
     add('Truss_Tie', 'Roof', 'timber', B(7560, d - 70, 15240, d + 70), EAVE, EAVE + 200)
     for sub, top in tops(B(11330, d - 70, 11470, d + 70)):
         add('Truss_Post', 'Roof', 'timber', sub, EAVE + 200, top)
+add('Open_Beam_HallLiving', 'Roof', 'timber', B(15220, 5850, 15380, 12350), EAVE - 80, EAVE + 220)
 # 굴뚝 (거실 벽난로)
 add('Chimney', '1F', 'stone_wall', B(17650, 5100, 18550, 5600), PAD, 7780)
 add('Chimney_Cap', '1F', 'frame', B(17580, 5030, 18620, 5670), 7780, 7850)
@@ -289,40 +290,69 @@ add('Attic_Floor', '1F', 'fl_private', B(-6750, 5850, -125, 12950).difference(WE
 for k in range(16):
     d1 = 12700 - 250 * k
     add(f'Attic_Stair_{k + 1}', '1F', 'timber', B(-1125, d1 - 250, -175, d1), FL - 20, FL - 20 + (AT_FL - FL + 20) / 17 * (k + 1))
-add('Attic_Rail_W', '1F', 'frame', B(-1165, 8700, -1125, 12700), AT_FL, AT_FL + 1000)
-add('Attic_Rail_S', '1F', 'frame', B(-1165, 12700, -125, 12740), AT_FL, AT_FL + 1000)
+for d_ in range(8700, 12701, 800):                                    # 계단 난간: 기둥 + 손잡이 + 중간대
+    add('Attic_Rail_Post', '1F', 'frame', B(-1165, d_ - 20, -1125, d_ + 20), AT_FL, AT_FL + 1000, minarea=100)
+for u_ in (-765, -365):
+    add('Attic_Rail_Post', '1F', 'frame', B(u_ - 20, 12700, u_ + 20, 12740), AT_FL, AT_FL + 1000, minarea=100)
+for (z0_, z1_) in [(960, 1010), (480, 510)]:
+    add('Attic_Rail_Bar', '1F', 'frame' if z0_ < 900 else 'timber', B(-1170, 8680, -1120, 12740), AT_FL + z0_, AT_FL + z1_, minarea=100)
+    add('Attic_Rail_Bar', '1F', 'frame' if z0_ < 900 else 'timber', B(-1170, 12695, -125, 12745), AT_FL + z0_, AT_FL + z1_, minarea=100)
 GPN = [0.0, -TAN_G, EAVE_G + TAN_G * (-5600)]; GPS = [0.0, TAN_G, EAVE_G + TAN_G * 13200]
 for k, u0 in enumerate((-5600, -3200)):                                # 남측 지붕 천창 2개
     add(f'Skylight_{k + 1}_Frame', 'Roof', 'frame', B(u0, 10700, u0 + 900, 12100), sh(GPS, RT), sh(GPS, RT + 70))
     add(f'Skylight_{k + 1}_Glass', 'Roof', 'glass', B(u0 + 70, 10770, u0 + 830, 12030), sh(GPS, RT + 70), sh(GPS, RT + 90))
 AF = AT_FL + 15
-add('Attic_Desk', 'Furniture', 'timber', B(-6700, 8600, -6000, 10200), AF + 700, AF + 740)
-add('Attic_Sofa', 'Furniture', 'sofa', B(-4600, 8000, -2400, 8900), AF, AF + 420)
-add('Attic_Sofa_Back', 'Furniture', 'sofa', B(-4600, 8000, -2400, 8200), AF + 420, AF + 800)
-add('Attic_Shelf_N', 'Furniture', 'cabinet_wood', B(-6600, 6300, -1500, 6700), AF, AF + 700)
-add('Attic_Shelf_S', 'Furniture', 'cabinet_wood', B(-6600, 12300, -1500, 12700), AF, AF + 700)
-add('Attic_Rug', 'Furniture', 'bed', B(-5200, 9100, -2200, 10900), AF, AF + 12)
+add('Attic_Desk_Top', 'Furniture', 'timber', B(-6450, 8250, -5700, 10550), AF + 720, AF + 760)
+for (u_, d_) in [(-6400, 8300), (-5800, 8300), (-6400, 10450), (-5800, 10450)]:
+    add('Attic_Desk_Leg', 'Furniture', 'frame', B(u_, d_, u_ + 50, d_ + 50), AF, AF + 720, minarea=100)
+add('Attic_Desk_Lamp', 'Furniture', 'lamp', B(-6350, 8400, -6230, 8520), AF + 760, AF + 1100, minarea=100)
+add('Attic_Desk_Books', 'Furniture', 'cabinet_wood', B(-6400, 10000, -6150, 10450), AF + 760, AF + 960, minarea=100)
+add('Attic_Shelf_N', 'Furniture', 'cabinet_wood', B(-5400, 6250, -1500, 6650), AF, AF + 620)
+add('Attic_Shelf_S', 'Furniture', 'cabinet_wood', B(-5400, 12150, -1500, 12550), AF, AF + 620)
+for k_, d_ in enumerate((7150, 11330)):
+    add(f'Attic_Speaker_{k_}', 'Furniture', 'frame', B(-6500, d_, -6150, d_ + 320), AF, AF + 1000)
+add('Attic_AudioRack', 'Furniture', 'cabinet_wood', B(-3300, 6750, -1900, 7250), AF, AF + 560)
+add('Attic_Turntable', 'Furniture', 'frame', B(-2900, 6820, -2400, 7180), AF + 560, AF + 650)
+add('Attic_Amp', 'Furniture', 'metal', B(-3250, 6830, -2950, 7170), AF + 560, AF + 700)
+add('Attic_Lounge_Seat', 'Furniture', 'sofa', B(-3300, 8950, -2500, 9850), AF, AF + 400)
+add('Attic_Lounge_Back', 'Furniture', 'sofa', B(-2650, 8950, -2500, 9850), AF + 400, AF + 900)
+add('Attic_Ottoman', 'Furniture', 'sofa', B(-4250, 9150, -3750, 9650), AF, AF + 360)
+add('Attic_Rug', 'Furniture', 'bed', B(-5300, 8300, -2000, 10500), AF, AF + 12)
 # 외부 벽등
 for (u, d, ox, oy) in [(-7000, 9400, -1, 0), (-7000, 5900, -1, 0), (-7000, 12900, -1, 0), (1150, 12600, 0, -1), (3450, 12600, 0, -1), (-1000 + 700, 13200, 0, -1),
                        (7900, 14600, 0, -1), (14900, 14600, 0, -1), (15650, 12600, 0, -1), (20650, 12600, 0, -1), (3850, 5600, 0, 1)]:
     x, y = u + ox * 45, -d + oy * 45
     add('WallLamp', '1F', 'lamp', box(x - 60, y - 60, x + 60, y + 60) if True else None, FL + 2000, FL + 2220, minarea=300)
 
-# 다락 서측 박공벽에 지름 500mm 원형 창 개구부 (세로 띠로 근사, 유리와 창틀은 렌더러에서 추가)
-RW_C, RW_Z, RW_R = 9400, AT_FL + 1500, 250
+# 다락 서측 박공벽: 지붕선을 따르는 큰 창(창대 450, 가운데 높이 2000) + 꼭대기 원형 스테인드글라스(지름 500)
+RW_C, RW_Z, RW_R = 9400, AT_FL + 2500, 250
+GW0, GW1, GW_S, GW_H, GW_RK = 6600, 12200, AT_FL + 450, AT_FL + 2000, 300
+GA, GB = 5600 + (GW_H - AT_FL + GW_RK) / TAN_G, 13200 - (GW_H - AT_FL + GW_RK) / TAN_G
 _old = list(P); P[:] = []
 for p in _old:
     xs_ = [q[0] for q in p['p']]
     if not (p['g'] == 'Roof' and p['m'] == 'siding_wood' and min(xs_) >= -7001 and max(xs_) <= -6749):
         P.append(p); continue
-    poly = Polygon(p['p'])
-    add(p['n'], p['g'], p['m'], poly.difference(B(-7100, RW_C - RW_R, -6700, RW_C + RW_R)), p['zb'], p['zt'])
+    poly = Polygon(p['p']); pl = p['zt']
+    add(p['n'], p['g'], p['m'], poly.difference(B(-7100, GW0, -6700, GW1)), p['zb'], pl)
+    win = poly.intersection(B(-7100, GW0, -6700, GW1))
+    add(p['n'] + '_Sill', p['g'], p['m'], win, p['zb'], GW_S)
+    for (d0, d1) in ((GW0, GA), (GB, GW1)):
+        add(p['n'] + '_Rake', p['g'], p['m'], win.intersection(B(-7100, d0, -6700, d1)), sh(pl, -GW_RK), pl)
+    mid = win.intersection(B(-7100, GA, -6700, GB))
+    add(p['n'] + '_Transom', p['g'], p['m'], mid.difference(B(-7100, RW_C - RW_R, -6700, RW_C + RW_R)), GW_H, pl)
     for k in range(10):
-        d0 = RW_C - RW_R + 50 * k
-        half = math.sqrt(max(RW_R ** 2 - (d0 + 25 - RW_C) ** 2, 0))
-        cut = poly.intersection(B(-7100, d0, -6700, d0 + 50))
-        add(p['n'] + f'_Under{k}', p['g'], p['m'], cut, p['zb'], RW_Z - half, minarea=300)
-        add(p['n'] + f'_Over{k}', p['g'], p['m'], cut, RW_Z + half, p['zt'], minarea=300)
+        d0 = RW_C - RW_R + 50 * k; half = math.sqrt(max(RW_R ** 2 - (d0 + 25 - RW_C) ** 2, 0)); cut = mid.intersection(B(-7100, d0, -6700, d0 + 50))
+        add(p['n'] + f'_Under{k}', p['g'], p['m'], cut, GW_H, RW_Z - half, minarea=300)
+        add(p['n'] + f'_Over{k}', p['g'], p['m'], cut, RW_Z + half, pl, minarea=300)
+for (d0, d1, zt_) in ((GW0, GA, sh(GPN, -GW_RK)), (GA, 9400, GW_H), (9400, GB, GW_H), (GB, GW1, sh(GPS, -GW_RK))):
+    add('Attic_BigWindow_Glass', 'Roof', 'glass', B(-6900, d0, -6860, d1), GW_S, zt_)
+add('Attic_BigWindow_SillBar', 'Roof', 'frame', B(-6960, GW0, -6800, GW1), GW_S - 50, GW_S + 20, minarea=300)
+add('Attic_BigWindow_HeadBar', 'Roof', 'frame', B(-6960, GA, -6800, GB), GW_H - 20, GW_H + 50, minarea=300)
+for k in range(7):
+    dm = GW0 + (GW1 - GW0) * k / 6
+    ztm = GW_H if GA <= dm <= GB else sh(GPN if dm < 9400 else GPS, -GW_RK)
+    add(f'Attic_BigWindow_Mullion{k}', 'Roof', 'frame', B(-6950, max(dm - 30, GW0), -6810, min(dm + 30, GW1)), GW_S, ztm, minarea=300)
 
 # ================================================================= 대지
 add('Hillside', 'Site', 'hill', HILL, -14000, NAT)
@@ -402,33 +432,118 @@ fur('Kitchen_Island', B(9200, 7600, 12600, 8750), F, FL + 900, 'cabinet_wood'); 
 fur('Scullery_Counter_N', B(4600, 5850, 7380, 6450), F, FL + 900, 'cabinet'); fur('Scullery_Counter_N_Top', B(4600, 5850, 7380, 6470), FL + 900, FL + 940, 'counter')
 fur('Scullery_Counter_S', B(4300, 8360, 7380, 8960), F, FL + 900, 'cabinet'); fur('Scullery_Counter_S_Top', B(4300, 8340, 7380, 8960), FL + 900, FL + 940, 'counter')
 fur('Scullery_Fridges', B(3060, 8300, 4300, 8960), F, FL + 2000, 'metal')
-fur('Laundry', B(300, 5850, 1750, 6450), F, FL + 900, 'porcelain')
+# 다용도실: 타워형 세탁기·건조기, 개수대, 키 큰 수납장, 벤치
+fur('Util_Tower_Washer', B(200, 5870, 820, 6520), F, FL + 870, 'porcelain'); fur('Util_Tower_Band', B(200, 5870, 820, 6525), FL + 870, FL + 1010, 'metal')
+fur('Util_Tower_Dryer', B(200, 5870, 820, 6520), FL + 1010, FL + 1890, 'porcelain')
+fur('Util_Sink_Cabinet', B(900, 5850, 2250, 6450), F, FL + 860, 'cabinet'); fur('Util_Sink_Top', B(900, 5850, 2250, 6470), FL + 860, FL + 900, 'counter')
+fur('Util_Sink_Basin', B(1150, 5950, 1750, 6350), FL + 900, FL + 915, 'metal')
+fur('Util_Tall_Storage', B(2330, 5850, 2900, 6420), F, FL + 2150, 'cabinet_wood')
+fur('Util_Bench', B(200, 8450, 1150, 8900), F, FL + 450, 'timber'); fur('Util_Hooks_Rail', B(200, 8880, 1150, 8950), FL + 1600, FL + 1680, 'timber')
+# 보조주방: 개수대, 쿡탑, 상부장, 선반
+fur('Scullery_Sink_Basin', B(5100, 5950, 5900, 6350), FL + 940, FL + 955, 'metal'); fur('Scullery_Cooktop', B(6300, 5950, 7000, 6380), FL + 940, FL + 955, 'frame')
+fur('Scullery_Upper_S', B(4300, 8610, 7380, 8960), FL + 1500, FL + 2250, 'cabinet'); fur('Scullery_Hood', B(6250, 5850, 7050, 6250), FL + 1650, FL + 1800, 'metal')
+fur('Scullery_Shelf_W', B(3060, 5900, 3300, 6700), FL + 1300, FL + 1340, 'timber'); fur('Scullery_Shelf_W2', B(3060, 5900, 3300, 6700), FL + 1650, FL + 1690, 'timber')
 fur('Shoe_Cabinet', B(125, 9080, 560, 12350), F, FL + 2250, 'cabinet_wood')
 fur('Foyer_Bench', B(3350, 11850, 4290, 12350), F, FL + 450, 'timber')
 fur('Powder_WC', B(6850, 10900, 7440, 11350), F, FL + 430, 'porcelain'); fur('Powder_Sink', B(4500, 11800, 5400, 12350), FL + 700, FL + 850, 'porcelain')
-fur('Dining_Table', B(9200, 11425, 13600, 12575), FL + 700, FL + 760, 'timber')
-for (u, d) in [(9500, 11600), (13300, 11600), (9500, 12400), (13300, 12400)]:
+fur('Dining_Table', B(8950, 11425, 12650, 12575), FL + 700, FL + 760, 'timber')          # 12인: 긴 변 5석씩 + 양 끝
+for (u, d) in [(9250, 11600), (12350, 11600), (9250, 12400), (12350, 12400)]:
     fur('Dining_Table_Leg', B(u - 50, d - 50, u + 50, d + 50), F, FL + 700, 'timber')
 fur('Sofa', B(16300, 9300, 19300, 10250), F, FL + 430, 'sofa'); fur('Sofa_Back', B(16300, 10050, 19300, 10250), FL + 430, FL + 850, 'sofa')
 fur('Sofa_Side', B(19300, 7500, 20200, 10250), F, FL + 430, 'sofa'); fur('Sofa_Side_Back', B(20000, 7500, 20200, 10250), FL + 430, FL + 850, 'sofa')
 fur('Coffee_Table', B(17000, 7800, 18400, 8600), FL + 300, FL + 380, 'timber')
+fur('Living_Rug', B(14900, 7100, 20300, 10400), F, F + 12, 'bed')
+for k_, d_ in enumerate((7350, 8950)):                                     # 넓어진 서쪽에 안락의자 한 쌍
+    fur(f'Living_Armchair_{k_}_Seat', B(14950, d_, 15800, d_ + 850), F, FL + 420, 'sofa'); fur(f'Living_Armchair_{k_}_Back', B(14950, d_, 15130, d_ + 850), FL + 420, FL + 860, 'sofa')
+fur('Living_SideTable', B(15150, 8320, 15550, 8830), FL + 480, FL + 520, 'timber')
 fur('Fireplace', B(17500, 5850, 18700, 6300), F, FL + 2700, 'stone_wall'); fur('Fireplace_Glass', B(17750, 6290, 18450, 6320), FL + 350, FL + 1050, 'frame')
-fur('Bed2', B(21100, 9700, 22700, 11800), F, FL + 500, 'bed'); fur('Desk2', B(23400, 7400, 24300, 8900), FL + 700, FL + 740, 'timber')
+# 침실2: 창밖을 향한 붙박이 책상 + 서쪽 벽의 벽장침대(펼친 모습)
+fur('Bed2_Desk_Top', B(21250, 11780, 24050, 12350), FL + 720, FL + 760, 'timber')
+for u_ in (21250, 22630, 24010):
+    fur('Bed2_Desk_Panel', B(u_, 11800, u_ + 40, 12350), F, FL + 720, 'cabinet_wood')
+fur('Bed2_Desk_Drawers', B(23400, 11820, 24010, 12350), FL + 250, FL + 720, 'cabinet_wood')
+fur('Bed2_Desk_Lamp', B(21400, 12150, 21500, 12250), FL + 760, FL + 1100, 'lamp')
+fur('Bed2_Wallbed_Cabinet_Side1', B(20860, 8250, 21320, 8300), F, FL + 2250, 'cabinet_wood'); fur('Bed2_Wallbed_Cabinet_Side2', B(20860, 9900, 21320, 9950), F, FL + 2250, 'cabinet_wood')
+fur('Bed2_Wallbed_Cabinet_Top', B(20860, 8250, 21320, 9950), FL + 2200, FL + 2250, 'cabinet_wood'); fur('Bed2_Wallbed_Cabinet_Back', B(20860, 8300, 20900, 9900), F, FL + 2200, 'cabinet')
+fur('Bed2_Wallbed_Platform', B(20950, 8320, 23050, 9880), FL + 280, FL + 330, 'cabinet_wood'); fur('Bed2_Wallbed_Mattress', B(21000, 8350, 23000, 9850), FL + 330, FL + 530, 'bed')
+fur('Bed2_Wallbed_Pillow', B(21050, 8500, 21450, 9700), FL + 530, FL + 640, 'porcelain'); fur('Bed2_Wallbed_Throw', B(22300, 8340, 22800, 9860), FL + 530, FL + 545, 'furniture')
+for d_ in (8340, 9810):
+    fur('Bed2_Wallbed_Leg', B(22980, d_, 23040, d_ + 50), F, FL + 280, 'frame')
+fur('Bed2_Shelf_N', B(20860, 7330, 21200, 8250), F, FL + 2250, 'cabinet_wood'); fur('Bed2_Shelf_S', B(20860, 9950, 21200, 11200), F, FL + 2250, 'cabinet_wood')
 fur('Vanity2', B(24520, 7270, 25300, 7830), F, FL + 850, 'cabinet'); fur('WC2', B(25850, 9250, 26440, 9700), F, FL + 430, 'porcelain')
 fur('Closet_Dress', B(28400, 7400, 31750, 7940), F, FL + 2250, 'cabinet_wood'); fur('Closet_Pass', B(26560, 8060, 27160, 11540), F, FL + 2250, 'cabinet_wood')
 fur('MBath_Vanity', B(28900, 8060, 30700, 8620), F, FL + 850, 'cabinet'); fur('MBath_Tub', B(30950, 8300, 31750, 10000), F, FL + 560, 'porcelain')
 fur('MBath_WC', B(31150, 10850, 31750, 11400), F, FL + 430, 'porcelain'); fur('MBath_ShowerGlass', B(28800, 10200, 30300, 10240), F, FL + 2100, 'glass')
-fur('Bed_Master', B(28150, 11700, 30250, 13900), F, FL + 520, 'bed'); fur('Bed_Master_Head', B(28150, 11660, 30250, 11760), FL + 520, FL + 1150, 'timber')
+fur('Master_Headwall', B(27950, 11660, 30950, 11720), F, FL + 1150, 'cabinet')
+for k_, (u0_, rise_) in enumerate(((28300, 380), (29420, 140))):            # 모션베드 2개를 붙여서 (머리판 각도는 따로)
+    u1_ = u0_ + 1100
+    fur(f'MotionBed_{k_}_Base', B(u0_, 11760, u1_, 13810), F, FL + 300, 'cabinet')
+    fur(f'MotionBed_{k_}_MattFoot', B(u0_ + 30, 12650, u1_ - 30, 13790), FL + 300, FL + 550, 'bed')
+    sl_ = rise_ / 870.0                                                      # 머리 쪽(북)으로 갈수록 올라감: z = sl*(d0 - d) = sl*y + sl*d0
+    pb_ = [0.0, sl_, FL + 300 + sl_ * 12650]; pt_ = [0.0, sl_, FL + 550 + sl_ * 12650]
+    add(f'MotionBed_{k_}_MattHead', 'Furniture', 'bed', B(u0_ + 30, 11780, u1_ - 30, 12650), pb_, pt_)
+    add(f'MotionBed_{k_}_Wedge', 'Furniture', 'cabinet', B(u0_ + 60, 11780, u1_ - 60, 12650), FL + 300, pb_)
+    add(f'MotionBed_{k_}_Pillow', 'Furniture', 'porcelain', B(u0_ + 220, 11850, u1_ - 220, 12250), pt_, [0.0, sl_, pt_[2] + 120])
+    add(f'MotionBed_{k_}_Cushion', 'Furniture', 'fern', B(u0_ + 300, 12280, u1_ - 300, 12560), pt_, [0.0, sl_, pt_[2] + 110])
+    fur(f'MotionBed_{k_}_Throw', B(u0_ + 20, 13150, u1_ - 20, 13600), FL + 550, FL + 565, 'furniture')
+    add(f'Master_Sconce_{k_}', 'Furniture', 'lamp', B(u0_ + 500, 11720, u0_ + 600, 11790), FL + 1250, FL + 1450, minarea=100)
+fur('Master_Nightstand_W', B(27950, 11720, 28280, 12200), F, FL + 480, 'cabinet'); fur('Master_Nightstand_E', B(30540, 11720, 30990, 12200), F, FL + 480, 'cabinet')
+for k_, u0_ in enumerate((27750, 30000)):                                  # 남쪽 창가 리클라이너 2개 (창을 향함)
+    fur(f'Recliner_{k_}_Seat', B(u0_, 15250, u0_ + 800, 16050), F, FL + 430, 'sofa')
+    add(f'Recliner_{k_}_Back', 'Furniture', 'sofa', B(u0_ + 60, 14850, u0_ + 740, 15300), FL + 250, [0.0, 1.45, FL + 430 + 1.45 * 15300])
+    fur(f'Recliner_{k_}_ArmL', B(u0_, 15150, u0_ + 110, 16050), FL + 430, FL + 600, 'sofa'); fur(f'Recliner_{k_}_ArmR', B(u0_ + 690, 15150, u0_ + 800, 16050), FL + 430, FL + 600, 'sofa')
+    fur(f'Recliner_{k_}_Foot', B(u0_ + 80, 16080, u0_ + 720, 16520), FL + 240, FL + 400, 'sofa')
+fur('TeaTable_Top', Point(29275, -15700).buffer(300, resolution=4), FL + 500, FL + 530, 'timber'); fur('TeaTable_Leg', Point(29275, -15700).buffer(45, resolution=3), F, FL + 500, 'frame')
+fur('Master_Rug', B(27600, 14700, 31000, 16600), F, F + 12, 'bed')
 for k, d0 in enumerate((6350, 10500)):
     fur(f'Car_{k + 1}_Body', B(-6300, d0, -1500, d0 + 1900), FL + 250, FL + 950, 'car', '1F'); fur(f'Car_{k + 1}_Cabin', B(-5300, d0 + 90, -2500, d0 + 1810), FL + 950, FL + 1600, 'car_glass', '1F')
 for k, d0 in enumerate((10400, 12900)):
     fur(f'GuestCar_{k + 1}_Body', B(-17200, d0, -12400, d0 + 1900), PAD + 280, PAD + 980, 'car2' if k else 'car', 'Site'); fur(f'GuestCar_{k + 1}_Cabin', B(-16200, d0 + 90, -13400, d0 + 1810), PAD + 980, PAD + 1630, 'car_glass', 'Site')
 fur('Outdoor_Table', B(9600, 15200, 13200, 16300), FL + 690, FL + 750, 'timber', 'Site')
+# ------------------------------------------------------------------ 천장 설비 (시스템 에어컨 · 전열교환기)
+def cassette(nm, u, d):                                                     # 평천장: 4방향 카세트 840각
+    fur(nm + '_Panel', B(u - 420, d - 420, u + 420, d + 420), EAVE - 32, EAVE, 'porcelain')
+    fur(nm + '_Grille', B(u - 250, d - 250, u + 250, d + 250), EAVE - 37, EAVE - 32, 'metal')
+    for (a0, b0, a1, b1) in [(-330, -390, 330, -330), (-330, 330, 330, 390), (-390, -330, -330, 330), (330, -330, 390, 330)]:
+        fur(nm + '_Slot', B(u + a0, d + b0, u + a1, d + b1), EAVE - 37, EAVE - 32, 'frame')
+def erv_flat(nm, u, d):                                                     # 평천장: 전열교환기 급·배기구 (지름 220)
+    fur(nm + '_Ring', Point(u, -d).buffer(110, resolution=4), EAVE - 22, EAVE, 'porcelain'); fur(nm + '_Core', Point(u, -d).buffer(60, resolution=4), EAVE - 30, EAVE - 22, 'metal')
+def erv_slope(nm, u, d):                                                    # 박공 천장: 경사면을 따라 붙는 급·배기구
+    for sub, top in tops(Point(u, -d).buffer(115, resolution=4)):
+        add(nm + '_Ring', 'Roof', 'porcelain', sub, sh(top, -45), sh(top, -20), minarea=100)
+def slot(nm, geom, z0, z1, grp='Furniture'):                                # 벽 상부 선형 디퓨저 (덕트형 에어컨 토출구)
+    add(nm + '_Frame', grp, 'porcelain', geom, z0 - 25, z1 + 25, minarea=100); add(nm + '_Slot', grp, 'frame', geom.buffer(8, join_style=2), z0, z1, minarea=100)
+def duct_flat(nm, u, d, along='u', L=1300):                                # 평천장: 덕트형 에어컨의 선형 토출구 + 흡입 그릴
+    hx, hy = (L / 2, 55) if along == 'u' else (55, L / 2)
+    fur(nm + '_SupplyFrame', B(u - hx - 25, d - hy - 25, u + hx + 25, d + hy + 25), EAVE - 14, EAVE, 'porcelain')
+    fur(nm + '_SupplySlot', B(u - hx, d - hy, u + hx, d + hy), EAVE - 18, EAVE - 14, 'frame')
+    ox, oy = (0, 520) if along == 'u' else (520, 0)                          # 흡입 그릴은 토출구 옆에
+    rx, ry = (350, 175) if along == 'u' else (175, 350)
+    fur(nm + '_ReturnFrame', B(u + ox - rx - 25, d + oy - ry - 25, u + ox + rx + 25, d + oy + ry + 25), EAVE - 14, EAVE, 'porcelain')
+    for k_ in range(7):
+        t_ = -ry + 2 * ry * (k_ + 0.5) / 7 if along == 'u' else -rx + 2 * rx * (k_ + 0.5) / 7
+        fur(nm + '_ReturnLouver', B(u + ox - rx, d + oy + t_ - 14, u + ox + rx, d + oy + t_ + 14) if along == 'u' else B(u + ox + t_ - 14, d + oy - ry, u + ox + t_ + 14, d + oy + ry), EAVE - 19, EAVE - 14, 'metal')
+for nm, u, d, al in [('AC_Master', 29150, 14700, 'u'), ('AC_Bed2', 22630, 9000, 'u'), ('AC_Foyer', 2200, 10500, 'u'), ('AC_Scullery', 5200, 7200, 'u'), ('AC_Util', 1500, 6900, 'u')]: duct_flat(nm, u, d, al)
+for nm, u, d in [('ERV_Master_S', 27500, 13000), ('ERV_Master_R', 31000, 16200), ('ERV_Bed2', 21500, 11500), ('ERV_Dress', 29000, 6900), ('ERV_MBath', 30200, 9800), ('ERV_Bath2', 25480, 8500),
+                 ('ERV_Corridor', 23600, 6500), ('ERV_Gallery', 5900, 9770), ('ERV_Util', 2300, 7200), ('ERV_Scullery', 3700, 7000), ('ERV_Powder', 5900, 11500), ('ERV_DressPass', 27600, 9800)]: erv_flat(nm, u, d)
+fur('ERV_Unit_Hatch', B(1100, 7700, 1700, 8300), EAVE - 12, EAVE, 'porcelain'); fur('ERV_Unit_Hatch_Frame', B(1080, 7680, 1720, 8320).difference(B(1100, 7700, 1700, 8300)), EAVE - 16, EAVE, 'metal')
+for nm, u, d in [('ERV_Hall_1', 9300, 10800), ('ERV_Hall_2', 13000, 7900), ('ERV_Hall_3', 12800, 13400), ('ERV_Living_1', 16500, 7600), ('ERV_Living_2', 19200, 11200), ('ERV_Attic', -3600, 8300)]: erv_slope(nm, u, d)
+def grille_wall(nm, geom, z0, z1, horiz=True):                             # 벽 흡입 그릴 (루버)
+    add(nm + '_Frame', 'Furniture', 'porcelain', geom, z0 - 25, z1 + 25, minarea=100)
+    n_ = 6
+    for k_ in range(n_):
+        za = z0 + (z1 - z0) * k_ / n_
+        add(nm + '_Louver', 'Furniture', 'metal', geom.buffer(8, join_style=2), za + 6, za + (z1 - z0) / n_ - 6, minarea=100)
+slot('AC_Hall_W', B(7560, 10650, 7585, 12250), FL + 2440, FL + 2570); grille_wall('ACR_Hall_W', B(7560, 10900, 7580, 11800), FL + 1950, FL + 2250)
+slot('AC_Hall_N1', B(8700, 5850, 10300, 5875), FL + 2440, FL + 2570); slot('AC_Hall_N2', B(11300, 5850, 12900, 5875), FL + 2440, FL + 2570)
+slot('AC_Living_E1', B(20715, 7600, 20740, 9200), FL + 2440, FL + 2570); slot('AC_Living_E2', B(20715, 10000, 20740, 11600), FL + 2440, FL + 2570)
+grille_wall('ACR_Living_E', B(20720, 9350, 20740, 9850), FL + 2150, FL + 2550)
+slot('AC_Attic_E', B(-275, 6300, -250, 7900), AT_FL + 1240, AT_FL + 1370)
 CH = []
-for i in range(6):
-    x = 9200 + 4400 / 6 * (i + 0.5)
+for i in range(5):
+    x = 8950 + 3700 / 5 * (i + 0.5)
     CH += [[x, -11095, 0, FL + 15, 'Furniture'], [x, -12905, 180, FL + 15, 'Furniture']]
-CH += [[8870, -12000, 90, FL + 15, 'Furniture'], [13930, -12000, 270, FL + 15, 'Furniture']]
+CH += [[8620, -12000, 90, FL + 15, 'Furniture'], [12980, -12000, 270, FL + 15, 'Furniture']]
 for i in range(5):
     x = 9600 + 3600 / 5 * (i + 0.5)
     CH += [[x, -14870, 0, FL - 15, 'Site'], [x, -16630, 180, FL - 15, 'Site']]
@@ -437,7 +552,9 @@ for k in range(4):
 
 FENCE = [{'p': [(-17350, -8200), (-17350, -16650), (2450, -16650), (4680, -15740), (7000, -17140), (14450, -20050), (34350, -20050), (34350, -11400)], 'z': PAD + 120}]
 SPEC = {'roofs': ROOFSPEC, 'frames': [[round(v, 1) for v in f] for f in FRAMES], 'fences': FENCE, 'chairs': CH}
-LABELS = [{'t': '다락 (개인 공간)', 'x': -3600, 'y': -9400, 'z': AT_FL + 100, 'attic': 1}] + [{'t': k, 'x': round(room_poly(k).centroid.x), 'y': round(room_poly(k).centroid.y), 'z': FL + 100} for k in ROOMS]
+CH.append([-5250, -9400, 270, AT_FL + 15, 'Furniture'])
+CH.append([22630, -11300, 0, FL + 15, 'Furniture'])
+LABELS = [{'t': '다락 (서재·음악감상실)', 'x': -3600, 'y': -9400, 'z': AT_FL + 100, 'attic': 1}] + [{'t': k, 'x': round(room_poly(k).centroid.x), 'y': round(room_poly(k).centroid.y), 'z': FL + 100} for k in ROOMS]
 
 if __name__ == '__main__':
     core = len(P)

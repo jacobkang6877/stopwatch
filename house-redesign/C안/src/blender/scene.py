@@ -326,11 +326,19 @@ def stained_glass():
     MATS['stained_em'] = em
     return m
 SGM = stained_glass()
-bpy.ops.mesh.primitive_cylinder_add(radius=0.25, depth=0.016, vertices=72, location=(-6.9, -9.4, 5.95 + 1.5), rotation=(0, math.pi / 2, 0))
+bpy.ops.mesh.primitive_cylinder_add(radius=0.25, depth=0.016, vertices=72, location=(-6.9, -9.4, 5.95 + 2.5), rotation=(0, math.pi / 2, 0))
 bpy.context.object.data.materials.append(SGM); GROUP_OBJS.setdefault('Roof', []).append(bpy.context.object)
 for xr in (-7.005, -6.745):
-    bpy.ops.mesh.primitive_torus_add(major_radius=0.265, minor_radius=0.03, major_segments=72, minor_segments=12, location=(xr, -9.4, 5.95 + 1.5), rotation=(0, math.pi / 2, 0))
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.265, minor_radius=0.03, major_segments=72, minor_segments=12, location=(xr, -9.4, 5.95 + 2.5), rotation=(0, math.pi / 2, 0))
     o = bpy.context.object; o.data.materials.append(MATS['frame']); GROUP_OBJS['Roof'].append(o)
+    for p_ in o.data.polygons: p_.use_smooth = True
+
+# 타워형 세탁기·건조기의 둥근 문 (다용도실)
+for zc in (3.0 + 0.47, 3.0 + 1.47):
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.2, depth=0.03, vertices=48, location=(0.51, -6.53, zc), rotation=(math.pi / 2, 0, 0))
+    bpy.context.object.data.materials.append(MATS['car_glass']); GROUP_OBJS.setdefault('Furniture', []).append(bpy.context.object)
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.215, minor_radius=0.025, major_segments=48, minor_segments=10, location=(0.51, -6.535, zc), rotation=(math.pi / 2, 0, 0))
+    o = bpy.context.object; o.data.materials.append(MATS['metal']); GROUP_OBJS['Furniture'].append(o)
     for p_ in o.data.polygons: p_.use_smooth = True
 
 # ------------------------------------------------------------------ 하늘·해·실내등
@@ -346,7 +354,7 @@ def set_sun(az_deg, el_deg, strength, sky_strength, color=(1.0, 0.94, 0.86)):
     sky.sun_elevation = max(el, math.radians(-3)); sky.sun_rotation = az; sky.sun_disc = False; bg.inputs[1].default_value = sky_strength
 LIGHTS = []
 for (u, d, zz, pw) in [(11400, 12000, 5.9, 1.0), (11400, 8200, 5.9, 0.8), (18000, 9000, 5.9, 1.0), (2200, 10700, 5.4, 0.5), (5300, 7400, 5.4, 0.5), (22600, 9800, 5.4, 0.5),
-                       (29100, 14200, 5.4, 0.7), (30200, 9800, 5.4, 0.4), (-3600, 9400, 7.7, 0.45), (-3400, 9400, 5.4, 0.5), (23600, 6500, 5.4, 0.3), (1500, 7400, 5.4, 0.3)]:
+                       (29100, 14200, 5.4, 0.7), (30200, 9800, 5.4, 0.4), (-3600, 9400, 7.7, 0.45), (-3400, 9400, 5.4, 0.5), (23600, 6500, 5.4, 0.3), (1500, 7400, 5.4, 0.45)]:
     L = bpy.data.objects.new('L', bpy.data.lights.new('L', 'POINT')); sc.collection.objects.link(L); L.location = (u * S, -d * S, zz)
     L.data.color = (1.0, 0.80, 0.58); L.data.shadow_soft_size = 0.12; LIGHTS.append((L, pw))
 

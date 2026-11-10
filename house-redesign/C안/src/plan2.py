@@ -69,6 +69,7 @@ def plan():
         if p['g'] == 'Furniture' and not p['n'].endswith('_Top') and 'Leg' not in p['n'] and not p['n'].startswith('Attic'): s.append(sp(Polygon(p['p']), fill='none', stroke='#8b8b8b', stroke_width=18))
         if 'Car' in p['n'] and 'Body' in p['n']: s.append(sp(Polygon(p['p']).buffer(-60).buffer(60), fill='#cfd3d6' if 'Guest' in p['n'] else '#bfc4c8', stroke='#777', stroke_width=18))
         if p['n'] == 'Outdoor_Table': s.append(sp(Polygon(p['p']), fill='#e8d3ae', stroke='#8b8b8b', stroke_width=18))
+        if p['n'] in ('Bed2_Desk_Top', 'Bed2_Wallbed_Mattress'): s.append(sp(Polygon(p['p']), fill='#efe3cc' if 'Desk' in p['n'] else '#f4f1ea', stroke='#8b6b45', stroke_width=20))
         if p['n'] == 'Dining_Table': s.append(sp(Polygon(p['p']), fill='#e8d3ae', stroke='#6b5a3a', stroke_width=25))
     for c in G.CH: s.append(f'<rect x="{c[0] - 210:.0f}" y="{-c[1] - 210:.0f}" width="420" height="420" rx="90" fill="#fff" stroke="#8b6b45" stroke-width="18"/>')
     s.append(sp(B(-1125, 8700, -125, 12700), fill='#f3eee3', stroke='#777', stroke_width=14))
@@ -85,9 +86,10 @@ def plan():
         s.append(f'<circle cx="{u}" cy="{d}" r="750" fill="none" stroke="#2e9e6a" stroke-width="16" stroke-dasharray="70,70"/>')
     for k, v in ROOMS.items():
         p = room_poly(k); c = p.centroid; a = p.area / 1e6; small = a < 8
-        dy = {'주방': 1300, '다이닝 (14인)': -1500, '거실': -1700, '침실2 (게스트·서재)': 900, '안방': -1400, '차고 (2대)': 600}.get(k, 0)
+        dy = {'주방': 1300, '다이닝 (12인)': -1500, '거실': -1700, '침실2 (게스트·서재)': -850, '안방': -1400, '차고 (2대)': 600}.get(k, 0)
         s.append(tx(c.x, c.y + dy + 60, k, 250 if small else 330, weight=700))
         s.append(tx(c.x, c.y + dy - (300 if small else 380), f'{a:.1f}㎡ · {a / 3.3058:.1f}평', 200 if small else 240, fill='#555'))
+    s.append(tx(22000, -9180, '벽장침대', 190, fill='#555')); s.append(tx(22300, -12150, '붙박이 책상', 170, fill='#555'))
     s.append(tx(-12300, -9000, '진입 마당', 380, fill='#666', weight=700)); s.append(tx(-12300, -9550, '도로와 같은 높이 · 손님 주차 2~4대', 230, fill='#777'))
     s.append(tx(-3500, -14150, '처마 밑 보행로 (경사로 1:15)', 220, fill='#665')); s.append(tx(11400, -16000, '포치 · 야외 12인 식탁', 230, fill='#654'))
     s.append(tx(20500, -13700, '툇마루', 240, fill='#654')); s.append(tx(20500, -16300, '중정 수반', 230, fill='#456'))
@@ -115,12 +117,12 @@ def plan():
     s.append(R(-6750, 7980, -125, 10820, fill='#c4d9ec', stroke='#2e6fa8', stroke_width=14, stroke_dasharray='90,70'))
     s.append(R(-1125, 8700, -125, 12700, fill='#f3eee3', stroke='#777', stroke_width=14))
     for k in range(16): s.append(R(-1125, 12700 - 250 * k - 250, -125, 12700 - 250 * k, fill='none', stroke='#999', stroke_width=8))
-    s.append(R(-7000, 9150, -6750, 9650, fill='#c8642a'))
-    s.append(tx(ox + 1250, oy + 3730, '원형 창 Ø500', 170, fill='#a04a18'))
+    s.append(R(-7000, 6600, -6750, 12200, fill='#2f8fd8'))
+    s.append(tx(ox - 330, oy + 3800, '큰 박공 창 (폭 5.6m)', 170, fill='#2f6fa0', rot=-90))
     for u0 in (-5600, -3200): s.append(R(u0, 10700, u0 + 900, 12100, fill='#bfe0f5', stroke='#2f8fd8', stroke_width=20))
-    for (a, b_, c, d_) in [(-6700, 8600, -6000, 10200), (-4600, 8000, -2400, 8900), (-6600, 6300, -1500, 6700), (-6600, 12300, -1500, 12700)]:
+    for (a, b_, c, d_) in [(-6450, 8250, -5700, 10550), (-5470, 9180, -5030, 9620), (-5400, 6250, -1500, 6650), (-5400, 12150, -1500, 12550), (-6500, 7150, -6150, 7470), (-6500, 11330, -6150, 11650), (-3300, 6750, -1900, 7250), (-3300, 8950, -2500, 9850), (-4250, 9150, -3750, 9650)]:
         s.append(R(a, b_, c, d_, fill='none', stroke='#8b8b8b', stroke_width=14))
-    s.append(tx(ox + 3500, oy + 8650, '다락 평면 (차고 위, 개인 공간)', 300, weight=700))
+    s.append(tx(ox + 3500, oy + 8650, '다락 평면 (차고 위, 서재·음악감상실)', 300, weight=700))
     s.append(tx(ox + 2900, oy + 4000, '서서 쓰는 구간', 210, fill='#2e6fa8')); s.append(tx(ox + 2900, oy + 3650, '(천장 2.0m 이상, 폭 2.8m)', 180, fill='#2e6fa8'))
     s.append(tx(ox + 6400, oy + 2500, '계단', 190, fill='#555')); s.append(tx(ox + 1850, oy + 1800, '천창', 170, fill='#2f6fa0')); s.append(tx(ox + 4250, oy + 1800, '천창', 170, fill='#2f6fa0'))
     s.append(tx(ox + 3500, oy - 250, '바닥 43㎡ · 천장 평균 약 1.6m (다락 기준 1.8m 이하)', 190, fill='#555'))
