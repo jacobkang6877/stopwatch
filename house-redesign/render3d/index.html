@@ -1,0 +1,108 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>html,body{margin:0;overflow:hidden;background:#cfe3f2;font-family:'WenQuanYi Zen Hei',sans-serif}
+#lab{position:absolute;inset:0;pointer-events:none}
+.l{position:absolute;transform:translate(-50%,-50%);font-size:15px;font-weight:700;color:#1d1d1d;background:rgba(255,255,255,.82);padding:2px 7px;border-radius:4px;white-space:nowrap}
+#ttl{position:absolute;left:18px;top:14px;font-size:22px;font-weight:700;color:#1d2a33;background:rgba(255,255,255,.75);padding:6px 12px;border-radius:6px}
+#sub{position:absolute;left:18px;bottom:12px;font-size:13px;color:#33424d;background:rgba(255,255,255,.7);padding:4px 10px;border-radius:5px}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+<script src="data.js"></script></head><body><div id="lab"></div><div id="ttl"></div><div id="sub"></div>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+const W = innerWidth, H = innerHeight;
+const renderer = new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true});
+renderer.setPixelRatio(devicePixelRatio); renderer.setSize(W, H);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer); scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+const S = 0.001; // mm -> m
+// 하늘 그라데이션
+const sky = new THREE.Mesh(new THREE.SphereGeometry(3000, 32, 16), new THREE.ShaderMaterial({side:THREE.BackSide, depthWrite:false,
+  uniforms:{}, vertexShader:'varying vec3 p;void main(){p=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'varying vec3 p;void main(){float t=clamp(p.z*1.6+0.15,0.,1.);gl_FragColor=vec4(mix(vec3(0.86,0.90,0.93),vec3(0.42,0.62,0.82),t),1.);}'}));
+scene.add(sky);
+scene.fog = new THREE.Fog(0xcfdbe4, 180, 1400);
+const groups = {}; const mats = {};
+const zp = (pl,x,y)=> Array.isArray(pl)? pl[0]*x+pl[1]*y+pl[2] : pl;
+function mat(k){ if(mats[k]) return mats[k]; const c = DATA.mats[k]||[200,200,200];
+  const m = new THREE.MeshStandardMaterial({color:new THREE.Color(`rgb(${c[0]},${c[1]},${c[2]})`), roughness: k==='glass'||k==='water'?0.08:(k.startsWith('metal')?0.55:0.88), metalness: k==='metal_dark'||k==='copper'||k==='bronze'?0.35:0.0, flatShading:true, side:THREE.DoubleSide});
+  if(c.length>3){ m.transparent=true; m.opacity=c[3]/255; m.depthWrite=false; }
+  return mats[k]=m; }
+const edgeMat = new THREE.LineBasicMaterial({color:0x1a1a1a, transparent:true, opacity:0.32});
+const leafy = (n)=> n.includes('Crown') || n.includes('Leaves') || /Boxwood_\d_2/.test(n);
+for(const p of DATA.prisms){
+  if(/Boxwood_\d_[13]/.test(p.n)) continue;
+  if(leafy(p.n)){
+    let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9; for(const [x,y] of p.p){x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y);}
+    const z0=zp(p.zb,0,0), z1=zp(p.zt,0,0);
+    const isBox = p.n.includes('Boxwood');
+    const zb = isBox? z0-150 : z0, zt = isBox? z1+150 : z1;
+    const g = new THREE.IcosahedronGeometry(1, 2);
+    const col = p.n.includes('Maple') ? 0x7f9a3e : (p.n.includes('Bamboo') ? 0x6f9a4a : 0x4c7a34);
+    const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({color:col, roughness:0.95, flatShading:true}));
+    m.scale.set((x1-x0)/2*S*1.05, (y1-y0)/2*S*1.05, (zt-zb)/2*S*1.1); m.position.set((x0+x1)/2*S,(y0+y1)/2*S,(zb+zt)/2*S);
+    m.castShadow = true; m.receiveShadow = true;
+    const grp = groups[p.g] || (groups[p.g] = new THREE.Group()); grp.add(m); continue;
+  }
+  const pts = p.p; const n = pts.length; const pos=[];
+  const bot = pts.map(([x,y])=>[x*S,y*S,zp(p.zb,x,y)*S]), top = pts.map(([x,y])=>[x*S,y*S,zp(p.zt,x,y)*S]);
+  const tri = THREE.ShapeUtils.triangulateShape(pts.map(([x,y])=>new THREE.Vector2(x,y)), []);
+  for(const [a,b,c] of tri){ pos.push(...top[a],...top[b],...top[c]); pos.push(...bot[c],...bot[b],...bot[a]); }
+  for(let i=0;i<n;i++){ const j=(i+1)%n; pos.push(...bot[i],...bot[j],...top[j], ...bot[i],...top[j],...top[i]); }
+  if(p.g==='Roof'){ const cp=[]; const off=-0.02;
+    for(const [a,b,c] of tri){ cp.push(bot[c][0],bot[c][1],bot[c][2]+off, bot[b][0],bot[b][1],bot[b][2]+off, bot[a][0],bot[a][1],bot[a][2]+off); }
+    const cg=new THREE.BufferGeometry(); cg.setAttribute('position',new THREE.Float32BufferAttribute(cp,3)); cg.computeVertexNormals();
+    const cm=new THREE.Mesh(cg, window.CEIL || (window.CEIL=new THREE.MeshStandardMaterial({color:0xd9c3a0, roughness:0.85, side:THREE.FrontSide})));
+    cm.receiveShadow=true; (groups[p.g] || (groups[p.g] = new THREE.Group())).add(cm); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos,3)); g.computeVertexNormals();
+  const m = new THREE.Mesh(g, mat(p.m));
+  const tr = (DATA.mats[p.m]||[]).length>3;
+  m.castShadow = !tr || p.m==='bamboo_leaf'||p.m==='maple'; m.receiveShadow = !tr;
+  const grp = groups[p.g] || (groups[p.g] = new THREE.Group()); grp.add(m);
+  if(!p.n.startsWith('Ground') && !p.n.startsWith('Terrace') && !p.n.includes('Leaves') && !p.n.includes('Crown')){
+    const e = new THREE.LineSegments(new THREE.EdgesGeometry(g, 25), edgeMat); grp.add(e); }
+}
+for(const k in groups) scene.add(groups[k]);
+// 원경 지면 + 배경 산(분위기용 가상 지형)
+const far = new THREE.Mesh(new THREE.PlaneGeometry(4000,4000), new THREE.MeshStandardMaterial({color:0x7d9a62, roughness:1}));
+far.position.set(16,7,-0.32); far.receiveShadow = true; scene.add(far);
+function ridge(cx, cy, len, h, ang, col, wf){
+  wf = wf||1.8; const seg=48, pos=[]; const ca=Math.cos(ang), sa=Math.sin(ang); let prev=null;
+  for(let i=0;i<=seg;i++){ const t=i/seg-0.5;
+    const hh = Math.max(4, h*(0.62+0.25*Math.sin(i*0.55+cx*0.01)+0.13*Math.cos(i*1.7+cy*0.02))*(1-t*t*2.2));
+    const x=cx+ca*t*len, y=cy+sa*t*len; const cur=[x,y,hh];
+    if(prev){ const w0=prev[2]*wf, w1=hh*wf;
+      const b0=[prev[0]-sa*w0, prev[1]+ca*w0, -1], b1=[x-sa*w1, y+ca*w1, -1], f0=[prev[0]+sa*w0, prev[1]-ca*w0,-1], f1=[x+sa*w1,y-ca*w1,-1];
+      pos.push(...f0,...f1,...cur, ...f0,...cur,...prev, ...prev,...cur,...b1, ...prev,...b1,...b0); }
+    prev=cur; }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.computeVertexNormals();
+  const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:col,roughness:1,flatShading:true,side:THREE.DoubleSide})); scene.add(m); return m; }
+const bg = [ridge(40,430,1300,190,0.12,0x55704a), ridge(560,120,900,170,1.75,0x5c7750), ridge(-520,80,900,160,1.4,0x5a754e),
+            ridge(0,-1300,2200,150,0.02,0x8197a0, 2.4), ridge(-700,-700,900,130,0.8,0x7c939a, 2.2), ridge(800,-800,900,140,2.3,0x7c939a,2.2)];
+// 조명
+scene.add(new THREE.HemisphereLight(0xe8f1ff, 0x6b7a5a, 0.95));
+const sun = new THREE.DirectionalLight(0xfff2dc, 2.4);
+sun.position.set(16-22, 7-34, 42); sun.target.position.set(16,7,0); scene.add(sun); scene.add(sun.target);
+sun.castShadow = true; sun.shadow.mapSize.set(4096,4096);
+Object.assign(sun.shadow.camera, {left:-38,right:38,top:38,bottom:-38,near:1,far:140}); sun.shadow.bias=-0.0004; sun.shadow.normalBias=0.02;
+const camera = new THREE.PerspectiveCamera(40, W/H, 0.1, 6000); camera.up.set(0,0,1);
+const labEl = document.getElementById('lab');
+window.renderView = (v)=>{
+  renderer.shadowMap.enabled = !v.noshadow; scene.traverse(o=>{ if(o.material) o.material.needsUpdate = true; });
+  for(const k in groups) groups[k].visible = !(v.hide||[]).includes(k);
+  bg.forEach(m=>m.visible = !v.interior);
+  camera.fov = v.fov; camera.position.set(v.eye[0]*S, v.eye[1]*S, v.eye[2]*S); camera.lookAt(v.target[0]*S, v.target[1]*S, v.target[2]*S); camera.updateProjectionMatrix();
+  renderer.toneMappingExposure = v.exposure || 0.95;
+  renderer.render(scene, camera);
+  labEl.innerHTML='';
+  if(v.labels){ for(const L of DATA.labels){ if(!v.labels.includes(L.l)) continue;
+      const p = new THREE.Vector3(L.x*S, L.y*S, (L.z+250)*S).project(camera);
+      if(p.z>1) continue; const d=document.createElement('div'); d.className='l'; d.textContent=L.t;
+      d.style.left=((p.x+1)/2*W)+'px'; d.style.top=((1-p.y)/2*H)+'px'; labEl.appendChild(d);} }
+  document.getElementById('ttl').textContent = v.title; document.getElementById('sub').textContent = v.sub||'';
+  return true; };
+window.READY = true;
+</script></body></html>
